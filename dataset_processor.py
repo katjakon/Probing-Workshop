@@ -48,6 +48,9 @@ class DatasetProcessor:
 
         # self.dataset_with_token_ids = dataset.map(lambda x: self._tokenize_and_align_labels(x), batched=True)
     
+    def __getitem__(self, key):
+        return self.probedict[key]
+
     @staticmethod
     def _align_labels_with_tokens(labels, word_ids, none_label=0):
         """
