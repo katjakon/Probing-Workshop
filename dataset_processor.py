@@ -110,7 +110,7 @@ class DatasetProcessor:
                 sentence_tokens = self.convert_to_tokens(sentence_ids)
                 sentence_labels = self.convert_to_labels(sentence_label_ids)
 
-                self.probedict[key]["ids"].extend(sentence_tokens)
+                self.probedict[key]["ids"].extend(sentence)
                 self.probedict[key]["labels"].extend(sentence_labels)
                 self.probedict[key]["embeddings"].extend(sentence_embeddings)
 
