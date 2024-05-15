@@ -135,8 +135,8 @@ class DatasetProcessor:
     def get_word_representations(self, ids, mapping, layer_idx=-1):
         ids = [101] + ids + [102]
         ids = torch.tensor([ids])
-
-        output = self.model(ids, output_hidden_states=True)
+        with torch.no_grad():
+            output = self.model(ids, output_hidden_states=True)
         output = torch.squeeze(output[layer_idx][0], dim=0)
         # We don't need representations of [CLS] and [SEP]
         output = output[:-1]
