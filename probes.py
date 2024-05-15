@@ -1,41 +1,67 @@
 from collections import Counter, defaultdict
 import random
-
 import numpy as np
 from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
+from sklearn.neural_network import MLPClassifier
 
 class Dataset:
     def __init__(self) -> None:
         self.embeddings = np.array([[0.3, 0.5], [0.1, 0.9], [0.1, 0.9]])
         self.labels = [1, 0, 0]
-        self.strings = ["a", "a", "a"]
+        self.strings = ["a", "a", "n"]
 
 class ClassifierProbe:
     
-    def __init__(self, data_set) -> None:
+    def __init__(self, data_set, clf, clf_kwargs: dict) -> None:
+        """Initialize a probing classifier.
+
+        Args:
+            data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
+            clf (scikit-learn classifier): For instance, SGDClassifier or MLPClassifier
+            clf_kwargs (dict): Keyword arguments to be given to clf
+        """
         self.data_set = data_set
-        self.probe = SGDClassifier()
+        self.probe = clf(**clf_kwargs)
     
     def fit(self):
+        """Fit the given probe to the given classifier."""
         self.probe.fit(
             X=self.data_set.embeddings,
             y=self.data_set.labels
             )
     
     def predict(self, embeddings):
+        """Predict given instances.
+
+        Args:
+            embeddings (matrix-like): Predict labels based on given embeddings.
+
+        Returns:
+            1-d array: Predicted labels.
+        """
         return self.probe.predict(embeddings)
 
 
 class ControlTaskProbe:
+    """Initialize a control tasks probe.
 
-    def __init__(self, data_set):
+        Args:
+            data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
+            clf (scikit-learn classifier): For instance, SGDClassifier or MLPClassifier
+            clf_kwargs (dict): Keyword arguments to be given to clf
+    """
+    def __init__(self, data_set, clf, clf_kwargs):
         self.data_set = data_set
         self.n_labels = len(set(self.data_set.labels))
-        self.probe = SGDClassifier()
+        self.probe = clf(**clf_kwargs)
         self.label_dict, self.control_task = self.create_control_task()
 
     def create_control_task(self):
+        """Create the control tasks with random labels.
+
+        Returns:
+            (dict, list[str]): 2-tuple. Dictionary maps tokens to their control label, list of string are the control labels mapped to the original data set.
+        """
         control_label_dict = dict()
         control_labels = []
         for string in self.data_set.strings:
@@ -46,31 +72,52 @@ class ControlTaskProbe:
         return control_label_dict, control_labels
     
     def fit(self):
+        """Fit the given probe to the given classifier."""
         self.probe.fit(
             X=self.data_set.embeddings,
             y=self.control_task
         )
     
     def predict(self, embeddings):
+        """Predict given instances.
+
+        Args:
+            embeddings (matrix-like): Predict labels based on given embeddings.
+
+        Returns:
+            1-d array: Predicted labels.
+        """
         preds = self.probe.predict(
             X=embeddings
         )
         return preds
 
 class RandomProbe:
+    """Initialize a probe with random embeddings.
 
-    def __init__(self, data_set) -> None:
+        Args:
+            data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
+            clf (scikit-learn classifier): For instance, SGDClassifier or MLPClassifier
+            clf_kwargs (dict): Keyword arguments to be given to clf
+    """
+
+    def __init__(self, data_set, clf, clf_kwargs: dict) -> None:
         self.vocab = set(data_set.strings)
         self.data_set = data_set
         self.shape = data_set.embeddings[0].shape[0]
-        self.probe = SGDClassifier()
+        self.probe = clf(**clf_kwargs)
         self.emb_dict, self.random_embeddings = self.create_rand_emb()
     
+
     def create_rand_emb(self):
+        """Create random embeddings for word types.
+
+        Returns:
+            (dict, matrix-like): 2-tuple, contains dictionary with token types and their respective embeedings and the data set but with random embeddings.
+        """
         emb_dict = dict()
         random_embeddings = []
         for token in self.data_set.strings:
-            print(token)
             # Create random embeddings for all tokens we haven't seen.
             if token not in emb_dict:
                 emb_dict[token] = np.random.rand(self.shape)
@@ -80,36 +127,80 @@ class RandomProbe:
         return emb_dict, random_embeddings
     
     def fit(self):
+        """Fit the given probe to the given data set"""
         self.probe.fit(X=self.random_embeddings, y=self.data_set.labels)
     
-    def predict(self, strings):
-        embeddings = []
-        for token in strings:
+    def predict(self, instances_str: list[str]):
+        """Predict given instances.
+
+        Args:
+            instances list[str]: Predict labels based on given token strings.
+
+        Returns:
+            1-d array: Predicted labels.
+        """
+        X = []
+        for token in instances_str:
             if token not in self.emb_dict:
                 self.emb_dict[token] = np.random.rand(self.shape)
-            embeddings.append(self.emb_dict[token])
-        preds = self.probe.predict(X=embeddings)
+            X.append(self.emb_dict[token])
+        preds = self.probe.predict(X=X)
         return preds
     
 
 class MajorityBaseline:
 
     def __init__(self, data_set) -> None:
+        """Initialize the majority baseline.
+
+        Args:
+            data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
+        """
         self.data_set = data_set
-        self.majority_dict = self.create_majority_dict(self.data_set)
+        self.most_common_overall, self.majority_dict = None, dict()
 
     def create_majority_dict(self, data_set):
+        """_summary_
+
+        Args:
+            data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings
+
+        Returns:
+            (str, dict): 2-tuple, string that represents most common label in given data set and dictionary which contains the most common label for each token.
+        """
         counter_dict = defaultdict(Counter)
+        all_counts = Counter()
         for token, label in zip(data_set.strings, data_set.labels):
             counter_dict[token][label] += 1
-        return {token: counter_dict[token].most_common(1)[0][0] for token in counter_dict.keys()}
-
+            all_counts[label] += 1
+        most_common_overall = max(all_counts, key=lambda x: all_counts[x])
+        return most_common_overall, {token: counter_dict[token].most_common(1)[0][0] for token in counter_dict.keys()}
     
+    def fit(self):
+        """Fit the given probe to the given data set"""
+        self.most_common_overall, self.majority_dict = self.create_majority_dict(self.data_set)
+
+    def predict(self, instances_str):
+        """Predict given instances.
+
+        Args:
+            instances list[str]: Predict labels based on given token strings.
+
+        Returns:
+            1-d array: Predicted labels.
+        """
+        preds = []
+        for string in instances_str:
+            pred = self.majority_dict.get(string, self.most_common_overall)
+            preds.append(pred)
+        return preds
+
+
 if __name__ == "__main__":
     data = Dataset()
-    clf_probe = MajorityBaseline(data_set=data)
-    # clf_probe.fit()
-    # test_embedding = [[0.1, 1]]
-    # test_strings = ["a", "b"]
-    # pred = clf_probe.predict(test_embedding)
-    # print(pred)
+    clf_probe = ClassifierProbe(data_set=data, clf=SGDClassifier, clf_kwargs={"loss": "log_loss"})
+    clf_probe.fit()
+    test_embedding = [[0.1, 1]]
+    test_strings = ["a", "b"]
+    pred = clf_probe.predict(test_embedding)
+    print(pred)
