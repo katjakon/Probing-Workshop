@@ -1,30 +1,6 @@
 from collections import Counter, defaultdict
 import random
 import numpy as np
-from sklearn.linear_model import SGDClassifier
-from sklearn.neural_network import MLPClassifier
-
-class Dataset:
-
-    def __init__(self) -> None:
-        self.probing = {
-            "train": {
-                "ids": [0, 1, 2, 3, 3, 3],
-                "labels": ["a", "b", "c", "d", "d", "e"],
-                "embeddings": np.array([
-                    [0, 1, 2],
-                    [0, 1, 1],
-                    [0, 2, 2],
-                    [0, 3, 3],
-                    [0, 3, 2], 
-                    [0, 3, 1]
-                ])
-                      },
-
-        }
-    
-    def __getitem__(self, key):
-        return self.probing[key]
 
 class ClassifierProbe:
     
@@ -112,6 +88,11 @@ class ControlTaskProbe:
             X=embeddings
         )
         return preds
+    
+    def ids2control(self, ids):
+        return list(map(
+            lambda x: self.label_dict.get(x, random.randrange(self.n_labels)),
+            ids))
 
 class RandomProbe:
 
@@ -218,13 +199,3 @@ class MajorityBaseline:
             preds.append(pred)
         return preds
 
-
-if __name__ == "__main__":
-    data = Dataset()
-    clf_probe = MajorityBaseline(data_set=data)
-    clf_probe.fit()
-    test_embeds = np.array([[0, 1, 2], [0, 3, 0]])
-    test_ids = [0, 3]
-    test_labels = ["a", "e"]
-    preds = clf_probe.predict(test_ids)
-    print(preds)
