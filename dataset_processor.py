@@ -110,7 +110,7 @@ class DatasetProcessor:
                 sentence_tokens = self.convert_to_tokens(sentence_ids)
                 sentence_labels = self.convert_to_labels(sentence_label_ids)
 
-                self.probedict[key]["ids"].extend(sentence_tokens)
+                self.probedict[key]["ids"].extend(sentence)
                 self.probedict[key]["labels"].extend(sentence_labels)
                 self.probedict[key]["embeddings"].extend(sentence_embeddings)
 
@@ -135,8 +135,8 @@ class DatasetProcessor:
     def get_word_representations(self, ids, mapping, layer_idx=-1):
         ids = [101] + ids + [102]
         ids = torch.tensor([ids])
-
-        output = self.model(ids, output_hidden_states=True)
+        with torch.no_grad():
+            output = self.model(ids, output_hidden_states=True)
         output = torch.squeeze(output[layer_idx][0], dim=0)
         # We don't need representations of [CLS] and [SEP]
         output = output[:-1]
