@@ -12,7 +12,7 @@ class Dataset:
 
 class ClassifierProbe:
     
-    def __init__(self, data_set, clf, clf_kwargs: dict) -> None:
+    def __init__(self, data_set, clf, clf_kwargs: dict=None) -> None:
         """Initialize a probing classifier.
 
         Args:
@@ -21,6 +21,8 @@ class ClassifierProbe:
             clf_kwargs (dict): Keyword arguments to be given to clf
         """
         self.data_set = data_set
+        if clf_kwargs is None:
+            clf_kwargs = dict()
         self.probe = clf(**clf_kwargs)
     
     def fit(self):
@@ -43,16 +45,19 @@ class ClassifierProbe:
 
 
 class ControlTaskProbe:
-    """Initialize a control tasks probe.
+
+    def __init__(self, data_set, clf, clf_kwargs: dict=None):
+        """Initialize a control tasks probe.
 
         Args:
             data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
             clf (scikit-learn classifier): For instance, SGDClassifier or MLPClassifier
             clf_kwargs (dict): Keyword arguments to be given to clf
     """
-    def __init__(self, data_set, clf, clf_kwargs):
         self.data_set = data_set
         self.n_labels = len(set(self.data_set.labels))
+        if clf_kwargs is None:
+            clf_kwargs = dict()
         self.probe = clf(**clf_kwargs)
         self.label_dict, self.control_task = self.create_control_task()
 
@@ -93,18 +98,20 @@ class ControlTaskProbe:
         return preds
 
 class RandomProbe:
-    """Initialize a probe with random embeddings.
+
+    def __init__(self, data_set, clf, clf_kwargs: dict=None) -> None:
+        """Initialize a probe with random embeddings.
 
         Args:
             data_set (Custom Dataset type): Should have attributes for embeddings, labels & strings.
             clf (scikit-learn classifier): For instance, SGDClassifier or MLPClassifier
             clf_kwargs (dict): Keyword arguments to be given to clf
     """
-
-    def __init__(self, data_set, clf, clf_kwargs: dict) -> None:
         self.vocab = set(data_set.strings)
         self.data_set = data_set
         self.shape = data_set.embeddings[0].shape[0]
+        if clf_kwargs is None:
+            clf_kwargs = dict()
         self.probe = clf(**clf_kwargs)
         self.emb_dict, self.random_embeddings = self.create_rand_emb()
     
