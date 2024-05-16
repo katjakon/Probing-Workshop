@@ -39,10 +39,7 @@ class DatasetProcessor:
         self.labels_column = labels_column
 
         self.dataset_keys = list(dataset.keys())
-        if isinstance(dataset[self.dataset_keys[0]].features[labels_column], Sequence):
-            self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].feature.names
-        elif isinstance(dataset[self.dataset_keys[0]].features[labels_column], Value):
-            self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].names
+        self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].feature.names
 
         self.create_probedict()
 
@@ -150,7 +147,9 @@ class DatasetProcessor:
 
 if __name__ == "__main__":
     # pass
-    data = load_dataset("universal_dependencies", "en_pronouns")
-    bertmodel = "google-bert/bert-base-multilingual-cased"
-    data_processor = DatasetProcessor(data, bertmodel, "tokens", "upos", dataset_type="tokens")
+    data = load_dataset("vishnun/NLP-KnowledgeGraph", "default")
+    bertmodel = "google-bert/bert-base-cased"
+    for key in data.keys():
+        data[key] = data[key].select(range(100))
+    data_processor = DatasetProcessor(data, bertmodel, "tokens", "tags", dataset_type="tokens")
     # print(data_processor)
