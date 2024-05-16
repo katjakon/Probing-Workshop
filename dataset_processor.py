@@ -39,9 +39,9 @@ class DatasetProcessor:
         self.labels_column = labels_column
 
         self.dataset_keys = list(dataset.keys())
-        if dataset[self.dataset_keys[0]].features[labels_column] is Sequence:
+        if type(dataset[self.dataset_keys[0]].features[labels_column]) is Sequence:
             self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].feature.names
-        elif dataset[self.dataset_keys[0]].features[labels_column] is Value:
+        elif type(dataset[self.dataset_keys[0]].features[labels_column]) is Value:
             self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].names
 
         self.create_probedict()
