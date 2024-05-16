@@ -1,4 +1,4 @@
-from datasets import Dataset, DatasetDict, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset, Value, Sequence
 from transformers import BertModel, BertTokenizerFast
 from tqdm import tqdm
 import torch
@@ -39,15 +39,16 @@ class DatasetProcessor:
         self.labels_column = labels_column
 
         self.dataset_keys = list(dataset.keys())
-        self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].feature.names
+        if dataset[self.dataset_keys[0]].features[labels_column] is Sequence:
+            self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].feature.names
+        elif dataset[self.dataset_keys[0]].features[labels_column] is Value:
+            self.label_tags = dataset[self.dataset_keys[0]].features[labels_column].names
 
         self.create_probedict()
 
         assert dataset_type in self.DATASET_TYPES
         self.dataset_type = dataset_type
 
-        # self.dataset_with_token_ids = dataset.map(lambda x: self._tokenize_and_align_labels(x), batched=True)
-    
     def __getitem__(self, key):
         return self.probedict[key]
 
